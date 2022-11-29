@@ -1,0 +1,50 @@
+<annotation>
+	<folder>all</folder>
+	<filename>raw_11_21_2022_10_15_51_590194.jpg</filename>
+	<path>C:\Users\jeckh\Desktop\Peppers_InLine\all\raw_11_21_2022_10_15_51_590194.jpg</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>1920</width>
+		<height>1080</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>Cut Point</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>529</xmin>
+			<ymin>480</ymin>
+			<xmax>576</xmax>
+			<ymax>636</ymax>
+		</bndbox>
+	</object>
+	<object>
+		<name>Cut Point</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>1195</xmin>
+			<ymin>467</ymin>
+			<xmax>1246</xmax>
+			<ymax>627</ymax>
+		</bndbox>
+	</object>
+	<object>
+		<name>Cut Point</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>1541</xmin>
+			<ymin>441</ymin>
+			<xmax>1602</xmax>
+			<ymax>621</ymax>
+		</bndbox>
+	</object>
+</annotation>

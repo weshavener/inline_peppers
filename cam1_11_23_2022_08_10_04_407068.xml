@@ -1,0 +1,26 @@
+<annotation>
+	<folder>new</folder>
+	<filename>cam1_11_23_2022_08_10_04_407068.jpg</filename>
+	<path>C:\Users\jeckh\Desktop\pepper\images\new\cam1_11_23_2022_08_10_04_407068.jpg</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>300</width>
+		<height>300</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>Cut Point</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>244</xmin>
+			<ymin>100</ymin>
+			<xmax>275</xmax>
+			<ymax>142</ymax>
+		</bndbox>
+	</object>
+</annotation>
