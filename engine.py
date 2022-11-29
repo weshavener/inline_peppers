@@ -82,7 +82,7 @@ def evaluate(model, data_loader, device):
     iou_types = _get_iou_types(model)
     coco_evaluator = CocoEvaluator(coco, iou_types)
     # we are using 5, not the default 17 keypoitns
-    coco_evaluator.coco_eval['keypoints'].params.kpt_oks_sigmas = np.array([.5, .5, .5, .5, .5]) / 10.0
+    # coco_evaluator.coco_eval['keypoints'].params.kpt_oks_sigmas = np.array([.5, .5, .5, .5, .5]) / 10.0
 
     for images, targets in metric_logger.log_every(data_loader, 100, header):
         images = list(img.to(device) for img in images)
