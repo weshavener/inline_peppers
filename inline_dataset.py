@@ -143,6 +143,11 @@ def parse_xml(xml_path):
 
         filename = anno.filename.contents[0]
 
+        size = anno.size
+
+        width = float(size.width.contents[0])
+        height = float(size.height.contents[0])
+
         objs = anno.find_all('object')
         boxes= []
         areas = []
@@ -150,10 +155,10 @@ def parse_xml(xml_path):
             #print(obj.prettify())
             #print(obj.xmin.contents[0])
             box = [
-                int(obj.xmin.contents[0]), 
-                int(obj.ymin.contents[0]),
-                int(obj.xmax.contents[0]),
-                int(obj.ymax.contents[0])
+                float(obj.xmin.contents[0]), 
+                float(obj.ymin.contents[0]),
+                float(obj.xmax.contents[0]),
+                float(obj.ymax.contents[0]),
             ]
 
             area = (box[2] - box[0]) * (box[3] - box[1])
@@ -232,8 +237,169 @@ class PepperDataset(Dataset):
         
         return image, target
 
+
+import random
+import torch
+
+from torchvision.transforms import functional as F
+from torchvision import transforms  as T
+
+# import albumentations as A
+
+
+def _flip_pepper_keypoints(kps, width):
+    flip_inds = [1, 0, 2, 3, 4]
+    flipped_data = kps[:, flip_inds]
+    #print(flipped_data)
+    flipped_data[..., 0] = width - flipped_data[..., 0]
+    #print(flipped_data)
+    # Maintain COCO convention that if visibility == 0, then x, y = 0
+    inds = flipped_data[..., 2] == 0
+    flipped_data[inds] = 0
+    return flipped_data
+
+def _offset_keypoints(kps, off_y, off_x):
+    # print('kps \n', kps[:, :, 1], '\n')
+    kps[:, :, 1] = kps[:, :, 1] - off_y
+    kps[:, :, 0] = kps[:, :, 0] - off_x
+    
+    #print('mask \n', kps[:, :, 2], '\n')
+    #mask = (kps[:, :, 2] != 0).nonzero()
+    #print(mask)
+    
+    #print('zeros \n', kps[mask], '\n')
+    
+    #for m in mask:
+    #    kps[mask[0], mask[1], :] = 0.0
+    
+    return kps
+
+
+def _normalize_keypoints(kps, height, width):
+    # print('kps \n', kps[:, :, 1], '\n')
+    kps[:, :, 1] = kps[:, :, 1] / height
+    kps[:, :, 0] = kps[:, :, 0] / width
+    
+    return kps
+
+def _normalize_bboxes(boxes, height, width):
+    print(boxes)
+    # print('kps \n', kps[:, :, 1], '\n')
+    boxes[:,  [1,3]] = boxes[:, [1,3]] / height
+    boxes[:, [0,2]] = boxes[:, [0,2]] / width
+    
+    return boxes
+
+def _normalize_area(area, height, width):
+    # print('kps \n', kps[:, :, 1], '\n'
+    
+    return area / height / width
+ 
+class Compose(object):
+    def __init__(self, transforms):
+        self.transforms = transforms
+
+    def __call__(self, image, target):
+        for t in self.transforms:
+            image, target = t(image, target)
+        return image, target
+
+
+class RandomHorizontalFlip(object):
+    def __init__(self, prob):
+        self.prob = prob
+
+    def __call__(self, image, target):
+        if random.random() < self.prob:
+            height, width = image.shape[-2:]
+            image = image.flip(-1)
+            bbox = target["boxes"]
+            bbox[:, [0, 2]] = width - bbox[:, [2, 0]]
+            target["boxes"] = bbox
+            if "masks" in target:
+                target["masks"] = target["masks"].flip(-1)
+            if "keypoints" in target:
+                keypoints = target["keypoints"]
+                keypoints = _flip_pepper_keypoints(keypoints, width)
+                target["keypoints"] = keypoints
+        return image, target
+
+
+class CenterCrop(object):
+    def __init__(self, size):
+        self.size = size
+        self.crop = T.CenterCrop(size)
+        # this is a tuple of height, width
+
+    def __call__(self, image, target):
+        height, width = image.shape[-2:]
+        off_y = (height - self.size[0]) / 2
+        off_x = (width - self.size[1]) / 2
+        image = self.crop(image)
+        bbox = target["boxes"]
+        #print('before', bbox)
+        bbox[:, [0,2]] = bbox[:, [0,2]] - off_x
+        bbox[:, [1,3]] = bbox[:, [1,3]] - off_y
+        #print('after', bbox)
+        target["boxes"] = bbox
+        if "masks" in target:
+            target["masks"] = self.crop(target["masks"])
+        if "keypoints" in target:
+            keypoints = target["keypoints"]
+            keypoints = _offset_keypoints(keypoints, off_y, off_x)
+            target["keypoints"] = keypoints
+        return image, target
+
+class Resize(object):
+    def __init__(self, size):
+        self.size = size
+        self.resize = T.Resize(size)
+        # this is a tuple of height, width
+
+    def __call__(self, image, target):
+
+        colors, height, width = image.shape
+        
+        image = self.resize(image)
+        bbox = target["boxes"]
+        bbox = _normalize_bboxes(bbox, height, width)
+        target["boxes"] = bbox
+
+
+        area = target["area"]
+        area = _normalize_area(area, height, width)
+        target["area"] = area
+
+        if "masks" in target:
+            target["masks"] = self.resize(target["masks"])
+        if "keypoints" in target:
+            keypoints = target["keypoints"]
+            keypoints = _normalize_keypoints(keypoints, height, width)
+            target["keypoints"] = keypoints
+        return image, target
+
+
+class ToTensor(object):
+    def __call__(self, image, target):
+        image = F.to_tensor(image)
+        return image, target
+
+
+
+def get_transform(train=True):
+    transforms = []
+    #transforms.append(CenterCrop((400,1920)))
+        
+    if train:
+
+      transforms.append(RandomHorizontalFlip(0.5))
+
+    
+    return Compose(transforms)
+
 if __name__ == "__main__":
-    dataset = PepperDataset('data')
+    dataset = PepperDataset('data', transform=get_transform(train=False))
     img, target = dataset[25]
 
+    print(img.shape)
     print(target)
